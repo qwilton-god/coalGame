@@ -36,9 +36,9 @@ func (c *Company) GetStats() GameStats {
 
 func (c *Company) GetMinerPriceInfo() map[string]int {
 	priceInfo := map[string]int{
-		"basic":    5,
-		"normal":   50,
-		"advanced": 450,
+		"basic":    int(miners.NewBasicMiner().Info().Salary),
+		"normal":   int(miners.NewNormalMiner().Info().Salary),
+		"advanced": int(miners.NewAdvancedMiner().Info().Salary),
 	}
 
 	return priceInfo

@@ -25,7 +25,8 @@ func (h *Handlers) GetStatsHandler(ctx *gin.Context) {
 func (h *Handlers) StopGame(ctx *gin.Context) {
 	result, err := h.Game.EndGame()
 	if err != nil {
-		ctx.JSON(http.StatusMethodNotAllowed, err)
+		SendError(ctx, http.StatusNotFound, err)
+		return
 	}
 	ctx.JSON(http.StatusOK, result)
 }
@@ -38,7 +39,7 @@ func (h *Handlers) GetActiveMinersByClass(ctx *gin.Context) {
 	fmt.Println(list)
 	fmt.Println(ctx.Query("class"))
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, err)
+		SendError(ctx, http.StatusNotFound, err)
 		return
 	}
 	ctx.JSON(http.StatusOK, list)
@@ -48,12 +49,12 @@ func (h *Handlers) BuyMiner(ctx *gin.Context) {
 	var req myhttp.BuyMinerReq
 
 	if err := ctx.BindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		SendError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
 	if err := h.Game.BuyMiner(req.Class); err != nil {
-		ctx.JSON(http.StatusNotFound, err)
+		SendError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
@@ -64,7 +65,7 @@ func (h *Handlers) GetEquipmentInfo(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, h.Game.EquipmentInfo())
 }
 
-func (h *Handlers) GetBuyedEquipment(ctx *gin.Context) {
+func (h *Handlers) GetBoughtEquipment(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, h.Game.EquipmentBuyedInfo())
 }
 
@@ -72,12 +73,20 @@ func (h *Handlers) BuyEquipment(ctx *gin.Context) {
 	var req myhttp.BuyProductReq
 
 	if err := ctx.BindJSON(&req); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		if err.Error() == company.ErrInsufficientCoals.Error() {
+			SendError(ctx, http.StatusBadRequest, err)
+			return
+		} else if err.Error() == company.ErrProductAlreadyBuyed.Error() {
+			SendError(ctx, http.StatusConflict, err)
+			return
+		}
+		SendError(ctx, http.StatusBadRequest, err)
 		return
+
 	}
 
 	if err := h.Game.BuyProduct(req.Name); err != nil {
-		ctx.JSON(http.StatusNotFound, err)
+		SendError(ctx, http.StatusBadRequest, err)
 		return
 	}
 
